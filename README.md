@@ -1,5 +1,6 @@
 # CustomSusScreen
-Scuffed edit of CustomSplashScreen. Incog mode changes name and icon of mod so not obvious that its a dead meme. Changes minecraft's splash screen to <a href="https://www.reddit.com/r/amogus/comments/zyy9jb/when_mojang_is_sus_oc_too_big_of_a_coincidence/">a certain animation</a>.
+Scuffed edit of CustomSplashScreen. Changes minecraft's splash screen to <a href="https://www.reddit.com/r/amogus/comments/zyy9jb/when_mojang_is_sus_oc_too_big_of_a_coincidence/">a certain animation</a>.
+Incog mode changes name and icon of mod so not obvious that its a dead meme.
 
 Can change to a static image.
 
