@@ -2,7 +2,7 @@
 Scuffed edit of CustomSplashScreen. Changes minecraft's splash screen to <a href="https://www.reddit.com/r/amogus/comments/zyy9jb/when_mojang_is_sus_oc_too_big_of_a_coincidence/">a certain animation</a>.
 Incog mode changes name and icon of mod so not obvious that its a dead meme.
 
-Can change to a static image.
+Can change to a static image, disable load bar or change load bar colours.
 
 <img src="https://i.ibb.co/BtZ68ZD/image.png" width="655" height="368" target="_blank" /></p>
 
