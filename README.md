@@ -1,11 +1,13 @@
-# CustomSplashScreen
-Change minecraft's loading screen to your liking! Completely configurable!
-Allows you to completely change the minecraft splash screen.
-Provides many config options so you can customize the loading screen to your liking.
-Just look at the examples below:
-<img src="https://i.ibb.co/JBpn7RX/customsplashscreen-banner.png" width="768" height="132" /></p>
-<img src="https://i.ibb.co/dGGf4K8/Screenshot-2021-01-20-202835.png" width="655" height="368" /></p>
-  
-<img src="https://i.ibb.co/TkHt05n/Screenshot-2021-01-20-201930.png" width="655" height="368" /></p>
-  
-<img src="https://i.ibb.co/DWjZjd7/Screenshot-2021-01-20-201737.png" width="655" height="368" /></p>
+# CustomSusScreen
+Scuffed edit of CustomSplashScreen. Changes minecraft's splash screen to <a href="https://www.reddit.com/r/amogus/comments/zyy9jb/when_mojang_is_sus_oc_too_big_of_a_coincidence/">a certain animation</a>.
+
+Can change to a static image.
+
+<img src="https://i.ibb.co/BtZ68ZD/image.png" width="655" height="368" target="_blank" /></p>
+
+Replacing the animation files in the config folder will work, but I manually adjusted the animation speed with variables in the code, so not sure how well it will display.
+If you wish to attempt to make sense of my code to make an easily customizable animation, good luck.
+
+Cannot revert to vanilla splash screen in config. Deliberate to troll the people I send this to.
+
+<font size="1">I lost the game.</font>

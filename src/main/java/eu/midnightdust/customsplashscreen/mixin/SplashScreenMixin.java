@@ -25,6 +25,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.io.File;
 
 import static net.minecraft.client.gui.DrawableHelper.drawTexture;
 import static net.minecraft.client.gui.DrawableHelper.fill;
@@ -42,34 +44,46 @@ public class SplashScreenMixin {
     @Shadow @Final private Consumer<Optional<Throwable>> exceptionHandler;
 
     private static final CustomSplashScreenConfig CS_CONFIG = CustomSplashScreenClient.CS_CONFIG;
-
     private static final Identifier EMPTY_TEXTURE = new Identifier("empty.png");
-    private static final Identifier MOJANG_TEXTURE = new Identifier(CS_CONFIG.textures.MojangLogo);
-    private static final Identifier ASPECT_1to1_TEXTURE = new Identifier(CS_CONFIG.textures.Aspect1to1Logo);
-    private static final Identifier BOSS_BAR_TEXTURE = new Identifier(CS_CONFIG.textures.BossBarTexture);
-    private static final Identifier CUSTOM_PROGRESS_BAR_TEXTURE = new Identifier(CS_CONFIG.textures.CustomBarTexture);
-    private static final Identifier CUSTOM_PROGRESS_BAR_BACKGROUND_TEXTURE = new Identifier(CS_CONFIG.textures.CustomBarBackgroundTexture);
-    private static final Identifier BACKGROUND_TEXTURE = new Identifier(CS_CONFIG.textures.BackgroundTexture);
+    private static final Identifier MOJANG_TEXTURE = new Identifier("mojangstudios.png");
+    private static final int finishEarly = 83;
+    private static final float animSpeed = 3f;
+
+    private static ArrayList<Identifier> frameList() {
+        ArrayList<Identifier> frames = new ArrayList<Identifier>();
+        File[] files = new File("config/customsplashscreen/animation").listFiles();
+        for (File file : files) {
+            if (file.isFile()) {
+                frames.add(new Identifier("animation/" + file.getName()));
+            }
+        }
+        return frames;
+    }
+
+    private static Long startTimeLastRender = null;
+
+    private static Float currentFrame = null;
 
     @Inject(method = "init(Lnet/minecraft/client/MinecraftClient;)V", at = @At("HEAD"), cancellable = true)
     private static void init(MinecraftClient client, CallbackInfo ci) { // Load our custom textures at game start //
-        if (CS_CONFIG.logoStyle == CustomSplashScreenConfig.LogoStyle.Mojang) {
+        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) {
             client.getTextureManager().registerTexture(LOGO, new BlurredConfigTexture(MOJANG_TEXTURE));
         }
         else {
             client.getTextureManager().registerTexture(LOGO, new EmptyTexture(EMPTY_TEXTURE));
         }
-        client.getTextureManager().registerTexture(ASPECT_1to1_TEXTURE, new ConfigTexture(ASPECT_1to1_TEXTURE));
-        client.getTextureManager().registerTexture(BACKGROUND_TEXTURE, new ConfigTexture(BACKGROUND_TEXTURE));
 
-        client.getTextureManager().registerTexture(CUSTOM_PROGRESS_BAR_TEXTURE, new ConfigTexture(CUSTOM_PROGRESS_BAR_TEXTURE));
-        client.getTextureManager().registerTexture(CUSTOM_PROGRESS_BAR_BACKGROUND_TEXTURE, new ConfigTexture(CUSTOM_PROGRESS_BAR_BACKGROUND_TEXTURE));
+        for (Identifier frame : frameList()) {
+            client.getTextureManager().registerTexture(frame, new ConfigTexture(frame));
+        }
 
         ci.cancel();
     }
 
     @Inject(at = @At("TAIL"), method = "render")
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+
+        float prog = this.reload.getProgress();
         int width = this.client.getWindow().getScaledWidth();
         int height = this.client.getWindow().getScaledHeight();
         long l = Util.getMeasuringTimeMs();
@@ -116,9 +130,19 @@ public class SplashScreenMixin {
         double e = d * 4.0D;
         int w = (int)(e * 0.5D);
 
-        // Render our custom background image
-        if (CS_CONFIG.backgroundImage) {
-            RenderSystem.setShaderTexture(0, BACKGROUND_TEXTURE);
+        // Render the background anim
+        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Animated) {
+            if (startTimeLastRender == null) {
+                currentFrame = 0f;
+            } else if (startTimeLastRender != this.reloadStartTime) {
+                currentFrame = 0f;
+            } else {
+                currentFrame = Math.min(currentFrame + animSpeed, (int) Math.ceil(prog*frameList().size()) - 1 + finishEarly);
+            }
+            currentFrame = Math.min(currentFrame,frameList().size()-1);
+            int roundFrame = Math.round(currentFrame);
+            System.out.println(Math.round(roundFrame + 1));
+            RenderSystem.setShaderTexture(0, frameList().get(roundFrame));
             RenderSystem.enableBlend();
             RenderSystem.blendEquation(32774);
             RenderSystem.blendFunc(770, 1);
@@ -130,15 +154,13 @@ public class SplashScreenMixin {
         }
 
         // Render the Logo
-        RenderSystem.setShaderTexture(0, CustomSplashScreenClient.CS_CONFIG.logoStyle == CustomSplashScreenConfig.LogoStyle.Aspect1to1 ? ASPECT_1to1_TEXTURE : LOGO);
+        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) {
+            RenderSystem.setShaderTexture(0, LOGO);
+        }
         RenderSystem.enableBlend();
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
 
-        if (CustomSplashScreenClient.CS_CONFIG.logoStyle == CustomSplashScreenConfig.LogoStyle.Aspect1to1) {
-            RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, s);
-            drawTexture(matrices, m - (w / 2), v, w, w, 0, 0, 512, 512, 512, 512);
-        } else if (CustomSplashScreenClient.CS_CONFIG.logoStyle == CustomSplashScreenConfig.LogoStyle.Mojang) {
+        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) {
             RenderSystem.blendFunc(770, 1);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, s);
             drawTexture(matrices, m - w, u - v, w, (int)d, -0.0625F, 0.0F, 120, 60, 120, 120);
@@ -172,10 +194,12 @@ public class SplashScreenMixin {
                 this.client.currentScreen.init(this.client, this.client.getWindow().getScaledWidth(), this.client.getWindow().getScaledHeight());
             }
         }
+
+        startTimeLastRender = this.reloadStartTime;
     }
 
     private static int getBackgroundColor() {
-        if (CS_CONFIG.backgroundImage) {
+        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Animated) {
             return BackgroundHelper.ColorMixer.getArgb(0, 0, 0, 0);
         }
         else {
@@ -191,48 +215,8 @@ public class SplashScreenMixin {
     private void renderProgressBar(MatrixStack matrices, int x1, int y1, int x2, int y2, float opacity, CallbackInfo ci) {
         int i = MathHelper.ceil((float)(x2 - x1 - 2) * this.progress);
 
-        // Bossbar Progress Bar
-        if (CustomSplashScreenClient.CS_CONFIG.progressBarType == CustomSplashScreenConfig.ProgressBarType.BossBar) {
-            RenderSystem.setShaderTexture(0, BOSS_BAR_TEXTURE);
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-
-            int overlay = 0;
-
-            if (CustomSplashScreenClient.CS_CONFIG.bossBarType == CustomSplashScreenConfig.BossBarType.NOTCHED_6) {overlay = 93;}
-            else if (CustomSplashScreenClient.CS_CONFIG.bossBarType == CustomSplashScreenConfig.BossBarType.NOTCHED_10) {overlay = 105;}
-            else if (CustomSplashScreenClient.CS_CONFIG.bossBarType == CustomSplashScreenConfig.BossBarType.NOTCHED_12) {overlay = 117;}
-            else if (CustomSplashScreenClient.CS_CONFIG.bossBarType == CustomSplashScreenConfig.BossBarType.NOTCHED_20) {overlay = 129;}
-
-            int bbWidth = (int) ((x2 - x1+1) * 1.4f);
-            int bbHeight = (y2 - y1) * 30;
-            drawTexture(matrices, x1, y1 + 1, 0, 0, 0, x2 - x1, (int) ((y2-y1) / 1.4f), bbWidth, bbHeight);
-            drawTexture(matrices, x1, y1 + 1, 0, 0, 5f, i, (int) ((y2 - y1) / 1.4f), bbWidth, bbHeight);
-
-            RenderSystem.enableBlend();
-            RenderSystem.blendEquation(32774);
-            RenderSystem.blendFunc(770, 1);
-            if (overlay != 0) {
-                drawTexture(matrices, x1, y1 + 1, 0, 0, overlay, x2 - x1, (int) ((y2 - y1) / 1.4f), bbWidth, bbHeight);
-            }
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.disableBlend();
-        }
-
-        // Custom Progress Bar
-        if (CustomSplashScreenClient.CS_CONFIG.progressBarType == CustomSplashScreenConfig.ProgressBarType.Custom) {
-            int customWidth = CustomSplashScreenClient.CS_CONFIG.customProgressBarMode == CustomSplashScreenConfig.ProgressBarMode.Linear ? x2 - x1 : i;
-            if (CS_CONFIG.customProgressBarBackground) {
-                RenderSystem.setShaderTexture(0, CUSTOM_PROGRESS_BAR_BACKGROUND_TEXTURE);
-                RenderSystem.setShader(GameRenderer::getPositionTexShader);
-                drawTexture(matrices, x1, y1, 0, 0, 6, x2 - x1, y2 - y1, 10, x2-x1);
-            }
-            RenderSystem.setShaderTexture(0, CUSTOM_PROGRESS_BAR_TEXTURE);
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            drawTexture(matrices, x1, y1, 0, 0, 6, i, y2 - y1, customWidth, 10);
-        }
-
         // Vanilla / With Color progress bar
-        if (CustomSplashScreenClient.CS_CONFIG.progressBarType == CustomSplashScreenConfig.ProgressBarType.Vanilla) {
+        if (CS_CONFIG.progressBar) {
             int j = Math.round(opacity * 255.0F);
             int k = CustomSplashScreenClient.CS_CONFIG.progressBarColor | 255 << 24;
             int kk = CustomSplashScreenClient.CS_CONFIG.progressFrameColor | 255 << 24;

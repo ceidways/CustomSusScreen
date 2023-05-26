@@ -3,12 +3,13 @@
   "id": "customsplashscreen",
   "version": "${version}",
 
-  "name": "Custom Splash Screen",
-  "description": "Change minecraft's loading screen to your liking! Completely configurable!",
+  "name": "Load Screen Fix",
+  "description": "Fixes a loading screen bug :). ceidway's modified version of custom splash screen.",
   "authors": [
     "Motschen",
     "TeamMidnightDust",
-    "HypherionSA"
+    "HypherionSA",
+    "ceidways"
   ],
   "contact": {
     "homepage": "https://www.midnightdust.eu/",

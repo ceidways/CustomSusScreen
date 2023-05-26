@@ -8,16 +8,17 @@ import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.ArrayList;
+
 
 public class CustomSplashScreenClient implements ClientModInitializer {
 
     public static CustomSplashScreenConfig CS_CONFIG;
     public static File CONFIG_PATH = new File(FabricLoader.getInstance().getConfigDir() + "/customsplashscreen");
-    private static Path BackgroundTexture = Paths.get(CONFIG_PATH + "/background.png");
+    public static File ANIM_PATH = new File(FabricLoader.getInstance().getConfigDir() + "/customsplashscreen/animation");
     private static Path MojangTexture = Paths.get(CONFIG_PATH + "/mojangstudios.png");
-    private static Path MojankTexture = Paths.get(CONFIG_PATH + "/mojank.png");
-    private static Path ProgressBarTexture = Paths.get(CONFIG_PATH + "/progressbar.png");
-    private static Path ProgressBarBackgroundTexture = Paths.get(CONFIG_PATH + "/progressbar_background.png");
+    private static Path AnimationFramesTemp = Paths.get(ANIM_PATH + "/animation.txt");
+
 
     @Override
     public void onInitializeClient() {
@@ -26,23 +27,50 @@ public class CustomSplashScreenClient implements ClientModInitializer {
 
         if (!CONFIG_PATH.exists()) { // Run when config directory is nonexistant //
             CONFIG_PATH.mkdir(); // Create our custom config directory //
+            ANIM_PATH.mkdir();
 
             // Open Input Streams for copying the default textures to the config directory //
-            InputStream background = Thread.currentThread().getContextClassLoader().getResourceAsStream("background.png");
             InputStream mojangstudios = Thread.currentThread().getContextClassLoader().getResourceAsStream("mojangstudios.png");
-            InputStream mojank = Thread.currentThread().getContextClassLoader().getResourceAsStream("mojank.png");
-            InputStream progressbar = Thread.currentThread().getContextClassLoader().getResourceAsStream("progressbar.png");
-            InputStream progressbarBG = Thread.currentThread().getContextClassLoader().getResourceAsStream("progressbar_background.png");
             try {
                 // Copy the default textures into the config directory //
-                Files.copy(background,BackgroundTexture,StandardCopyOption.REPLACE_EXISTING);
-                Files.copy(mojangstudios,MojangTexture,StandardCopyOption.REPLACE_EXISTING);
-                Files.copy(mojank,MojankTexture,StandardCopyOption.REPLACE_EXISTING);
-                Files.copy(progressbar,ProgressBarTexture,StandardCopyOption.REPLACE_EXISTING);
-                Files.copy(progressbarBG,ProgressBarBackgroundTexture,StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(mojangstudios, MojangTexture, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            //copy animation files
+            InputStream animationframes = Thread.currentThread().getContextClassLoader().getResourceAsStream("animation.txt");
+            try {
+                Files.copy(animationframes, AnimationFramesTemp);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            BufferedReader reader;
+            ArrayList<String> frames = null;
+            try {
+                reader = new BufferedReader(new FileReader(AnimationFramesTemp.toString()));
+                String line = reader.readLine();
+                frames = new ArrayList<String>();
+                while (line != null) {
+                    Path current = Paths.get(ANIM_PATH + "/" + line);
+                    try {
+                        Files.copy(Thread.currentThread().getContextClassLoader().getResourceAsStream("animation/" + line), current);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    // read next line
+                    line = reader.readLine();
+                }
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            File obj = new File(AnimationFramesTemp.toString());
+            obj.delete();
+
+
+
+
         }
     }
 }
