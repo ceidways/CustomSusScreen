@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "customsplashscreen",
+  "id": "customsusscreen",
   "version": "${version}",
 
-  "name": "Load Screen Fix",
-  "description": "Fixes a loading screen bug :). ceidway's modified version of custom splash screen.",
+  "name": "Custom Sus Screen",
+  "description": "Changes Minecraft's splash screen to a certain animation. ceidway's modified version of Custom Splash Screen. Static image also available.",
   "authors": [
     "Motschen",
     "TeamMidnightDust",
