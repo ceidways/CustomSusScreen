@@ -5,6 +5,7 @@ import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.util.Identifier;
 
 import java.io.*;
 import java.nio.file.*;
@@ -19,6 +20,16 @@ public class CustomSplashScreenClient implements ClientModInitializer {
     private static Path MojangTexture = Paths.get(CONFIG_PATH + "/mojangstudios.png");
     private static Path AnimationFramesTemp = Paths.get(ANIM_PATH + "/animation.txt");
 
+    public static ArrayList<Identifier> getFrames() {
+        ArrayList<Identifier> frames = new ArrayList<Identifier>();
+        File[] files = new File("config/customsplashscreen/animation").listFiles();
+        for (File file : files) {
+            if (file.isFile()) {
+                frames.add(new Identifier("animation/" + file.getName()));
+            }
+        }
+        return frames;
+    }
 
     @Override
     public void onInitializeClient() {

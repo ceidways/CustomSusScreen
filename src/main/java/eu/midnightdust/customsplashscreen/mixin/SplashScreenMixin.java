@@ -46,26 +46,13 @@ public class SplashScreenMixin {
     private static final CustomSplashScreenConfig CS_CONFIG = CustomSplashScreenClient.CS_CONFIG;
     private static final Identifier EMPTY_TEXTURE = new Identifier("empty.png");
     private static final Identifier MOJANG_TEXTURE = new Identifier("mojangstudios.png");
-    private static final int finishEarly = 83;
-    private static final float animSpeed = 3f;
-
-    private static ArrayList<Identifier> frameList() {
-        ArrayList<Identifier> frames = new ArrayList<Identifier>();
-        File[] files = new File("config/customsplashscreen/animation").listFiles();
-        for (File file : files) {
-            if (file.isFile()) {
-                frames.add(new Identifier("animation/" + file.getName()));
-            }
-        }
-        return frames;
-    }
-
+    private static ArrayList<Identifier> frameList;
     private static Long startTimeLastRender = null;
-
     private static Float currentFrame = null;
 
     @Inject(method = "init(Lnet/minecraft/client/MinecraftClient;)V", at = @At("HEAD"), cancellable = true)
     private static void init(MinecraftClient client, CallbackInfo ci) { // Load our custom textures at game start //
+
         if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) {
             client.getTextureManager().registerTexture(LOGO, new BlurredConfigTexture(MOJANG_TEXTURE));
         }
@@ -73,9 +60,20 @@ public class SplashScreenMixin {
             client.getTextureManager().registerTexture(LOGO, new EmptyTexture(EMPTY_TEXTURE));
         }
 
-        for (Identifier frame : frameList()) {
+        frameList = new ArrayList<Identifier>(CustomSplashScreenClient.getFrames());
+        ArrayList<Identifier> frames = new ArrayList<Identifier>();
+
+
+        for (Identifier frame : frameList) {
             client.getTextureManager().registerTexture(frame, new ConfigTexture(frame));
         }
+
+        /* ~2s faster loading, but have to restart after changing anim speed.
+        for (float i = 0f;  i < frameList.size() - 1;) {
+            i = Math.min(i + CS_CONFIG.animSpeed/10, frameList.size()-1);
+            Identifier frame = frameList.get(Math.round(i));
+            client.getTextureManager().registerTexture(frame, new ConfigTexture(frame));
+        }*/
 
         ci.cancel();
     }
@@ -137,12 +135,12 @@ public class SplashScreenMixin {
             } else if (startTimeLastRender != this.reloadStartTime) {
                 currentFrame = 0f;
             } else {
-                currentFrame = Math.min(currentFrame + animSpeed, (int) Math.ceil(prog*frameList().size()) - 1 + finishEarly);
+                currentFrame = Math.min(currentFrame + CS_CONFIG.animSpeed/10, (int) Math.ceil(prog*frameList.size()) - 1 + CS_CONFIG.framesAhead);
             }
-            currentFrame = Math.min(currentFrame,frameList().size()-1);
+            currentFrame = Math.min(currentFrame,frameList.size()-1);
             int roundFrame = Math.round(currentFrame);
-            System.out.println(Math.round(roundFrame + 1));
-            RenderSystem.setShaderTexture(0, frameList().get(roundFrame));
+            //System.out.println(roundFrame + 1);
+            RenderSystem.setShaderTexture(0, frameList.get(roundFrame));
             RenderSystem.enableBlend();
             RenderSystem.blendEquation(32774);
             RenderSystem.blendFunc(770, 1);

@@ -1,8 +1,10 @@
 {
-	"text.autoconfig.customsplashscreen.title":"Splash Screen Fix :)",
-	"text.autoconfig.customsplashscreen.option.logoType":"Logo Type, RESTART GAME IF CHANGE",
+	"text.autoconfig.customsplashscreen.title":"Custom Sus Screen.",
+	"text.autoconfig.customsplashscreen.option.logoType":"Logo Type. RESTART REQUIRED",
 	"text.autoconfig.customsplashscreen.option.progressBar":"Progress Bar",
 	"text.autoconfig.customsplashscreen.option.backgroundColor":"Background Color",
 	"text.autoconfig.customsplashscreen.option.progressBarColor":"Progress Bar Color",
-	"text.autoconfig.customsplashscreen.option.progressFrameColor":"Progress Bar Frame Color"
+	"text.autoconfig.customsplashscreen.option.progressFrameColor":"Progress Bar Frame Color",
+	"text.autoconfig.customsplashscreen.option.animSpeed": "Anim Speed.",
+	"text.autoconfig.customsplashscreen.option.framesAhead": "Current frame is limited to loadbar % + this."
 }
