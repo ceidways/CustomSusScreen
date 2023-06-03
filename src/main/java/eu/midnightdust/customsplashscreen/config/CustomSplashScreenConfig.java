@@ -7,10 +7,12 @@ import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 
 @Config(name = "customsplashscreen")
 public class CustomSplashScreenConfig implements ConfigData {
-    @Comment(value = "Change the type of logo RESTART GAME IF CHANGE.")
+    @Comment(value = "Change the type of logo RESTART")
     @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
     public LogoType logoType = LogoType.Animated;
-    @Comment(value= "Each render advances current frame by this/10.")
+    @Comment(value= "Increases minecraft startup time, but don't need to restart after changing Anim Speed.")
+    public boolean loadUnusedFrames = false;
+    @Comment(value= "Each render advances current frame by this/10. RESTART")
     @ConfigEntry.BoundedDiscrete(min=0,max=200)
     public long animSpeed = 30;
     @Comment(value= "anim with 100 frames, at 50% load, and this at 20, pauses on frame 70. ")

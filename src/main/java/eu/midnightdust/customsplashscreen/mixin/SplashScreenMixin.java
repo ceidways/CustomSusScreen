@@ -63,17 +63,18 @@ public class SplashScreenMixin {
         frameList = new ArrayList<Identifier>(CustomSplashScreenClient.getFrames());
         ArrayList<Identifier> frames = new ArrayList<Identifier>();
 
-
-        for (Identifier frame : frameList) {
-            client.getTextureManager().registerTexture(frame, new ConfigTexture(frame));
+        if (CS_CONFIG.loadUnusedFrames) {
+            for (Identifier frame : frameList) {
+                client.getTextureManager().registerTexture(frame, new ConfigTexture(frame));
+            }
+        } else {
+            for (float i = 0f;  i < frameList.size() - 1;) {
+                i = Math.min(i + CS_CONFIG.animSpeed/10, frameList.size()-1);
+                Identifier frame = frameList.get(Math.round(i));
+                client.getTextureManager().registerTexture(frame, new ConfigTexture(frame));
+            }
         }
 
-        /* ~2s faster loading, but have to restart after changing anim speed.
-        for (float i = 0f;  i < frameList.size() - 1;) {
-            i = Math.min(i + CS_CONFIG.animSpeed/10, frameList.size()-1);
-            Identifier frame = frameList.get(Math.round(i));
-            client.getTextureManager().registerTexture(frame, new ConfigTexture(frame));
-        }*/
 
         ci.cancel();
     }
