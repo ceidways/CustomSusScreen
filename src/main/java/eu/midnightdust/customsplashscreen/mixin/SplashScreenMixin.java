@@ -8,7 +8,7 @@ import eu.midnightdust.customsplashscreen.texture.BlurredConfigTexture;
 import eu.midnightdust.customsplashscreen.texture.ConfigTexture;
 import eu.midnightdust.customsplashscreen.texture.EmptyTexture;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.BackgroundHelper;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.SplashOverlay;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
@@ -21,15 +21,15 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
 import java.util.ArrayList;
-import java.io.File;
-
-import static net.minecraft.client.gui.DrawableHelper.drawTexture;
-import static net.minecraft.client.gui.DrawableHelper.fill;
 
 @Mixin(SplashOverlay.class)
 public class SplashScreenMixin {
@@ -43,6 +43,12 @@ public class SplashScreenMixin {
     @Shadow private long reloadStartTime;
     @Shadow @Final private Consumer<Optional<Throwable>> exceptionHandler;
 
+    @Shadow
+    private static int withAlpha(int color, int alpha) {
+        return 0;
+    }
+
+    @Shadow @Final private static IntSupplier BRAND_ARGB;
     private static final CustomSplashScreenConfig CS_CONFIG = CustomSplashScreenClient.CS_CONFIG;
     private static final Identifier EMPTY_TEXTURE = new Identifier("empty.png");
     private static final Identifier MOJANG_TEXTURE = new Identifier("mojangstudios.png");
@@ -50,7 +56,7 @@ public class SplashScreenMixin {
     private static Long startTimeLastRender = null;
     private static Float currentFrame = null;
 
-    @Inject(method = "init(Lnet/minecraft/client/MinecraftClient;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "init(Lnet/minecraft/client/MinecraftClient;)V", at = @At("TAIL"), cancellable = true)
     private static void init(MinecraftClient client, CallbackInfo ci) { // Load our custom textures at game start //
 
         if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) {
@@ -79,58 +85,20 @@ public class SplashScreenMixin {
         ci.cancel();
     }
 
-    @Inject(at = @At("TAIL"), method = "render")
-    public void render(MatrixStack matrices, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-
-        float prog = this.reload.getProgress();
-        int width = this.client.getWindow().getScaledWidth();
-        int height = this.client.getWindow().getScaledHeight();
-        long l = Util.getMeasuringTimeMs();
-        if (this.reloading && this.reloadStartTime == -1L) {
-            this.reloadStartTime = l;
-        }
-
-        float f = this.reloadCompleteTime > -1L ? (float)(l - this.reloadCompleteTime) / 1000.0F : -1.0F;
-        float g = this.reloadStartTime > -1L ? (float)(l - this.reloadStartTime) / 500.0F : -1.0F;
-        float s;
-        int m;
-
-        // Render our custom color
-        if (f >= 1.0F) {
-            if (this.client.currentScreen != null) {
-                this.client.currentScreen.render(matrices, 0, 0, delta);
-            }
-
-            m = MathHelper.ceil((1.0F - MathHelper.clamp(f - 1.0F, 0.0F, 1.0F)) * 255.0F);
-            fill(matrices, 0, 0, width, height, withAlpha(m));
-            s = 1.0F - MathHelper.clamp(f - 1.0F, 0.0F, 1.0F);
-        } else if (this.reloading) {
-            if (this.client.currentScreen != null && g < 1.0F) {
-                this.client.currentScreen.render(matrices, mouseX, mouseY, delta);
-            }
-
-            m = MathHelper.ceil(MathHelper.clamp(g, 0.15D, 1.0D) * 255.0D);
-            fill(matrices, 0, 0, width, height, withAlpha(m));
-            s = MathHelper.clamp(g, 0.0F, 1.0F);
-        } else {
-            m = getBackgroundColor();
-            float p = (float)(m >> 16 & 255) / 255.0F;
-            float q = (float)(m >> 8 & 255) / 255.0F;
-            float r = (float)(m & 255) / 255.0F;
-            GlStateManager._clearColor(p, q, r, 1.0F);
-            GlStateManager._clear(16384, MinecraftClient.IS_SYSTEM_MAC);
-            s = 1.0F;
-        }
-
-        m = (int)((double)this.client.getWindow().getScaledWidth() * 0.5D);
-        int u = (int)((double)this.client.getWindow().getScaledHeight() * 0.5D);
-        double d = Math.min((double)this.client.getWindow().getScaledWidth() * 0.75D, this.client.getWindow().getScaledHeight()) * 0.25D;
-        int v = (int)(d * 0.5D);
-        double e = d * 4.0D;
-        int w = (int)(e * 0.5D);
-
-        // Render the background anim
+    // Render the background anim
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;getScaledWindowWidth()I", shift = At.Shift.BEFORE, ordinal = 2))
+    private void css$renderSplashBackground(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Animated) {
+            int width = client.getWindow().getScaledWidth();
+            int height = client.getWindow().getScaledHeight();
+            float prog = this.reload.getProgress();
+            float f = this.reloadCompleteTime > -1L ? (float)(Util.getMeasuringTimeMs() - this.reloadCompleteTime) / 1000.0F : -1.0F;
+            float g = this.reloadStartTime> -1L ? (float)(Util.getMeasuringTimeMs() - this.reloadStartTime) / 500.0F : -1.0F;
+            float s;
+            if (f >= 1.0F) s = 1.0F - MathHelper.clamp(f - 1.0F, 0.0F, 1.0F);
+            else if (reloading) s = MathHelper.clamp(g, 0.0F, 1.0F);
+            else s = 1.0F;
+
             if (startTimeLastRender == null) {
                 currentFrame = 0f;
             } else if (startTimeLastRender != this.reloadStartTime) {
@@ -140,92 +108,45 @@ public class SplashScreenMixin {
             }
             currentFrame = Math.min(currentFrame,frameList.size()-1);
             int roundFrame = Math.round(currentFrame);
-            //System.out.println(roundFrame + 1);
-            RenderSystem.setShaderTexture(0, frameList.get(roundFrame));
+
             RenderSystem.enableBlend();
             RenderSystem.blendEquation(32774);
-            RenderSystem.blendFunc(770, 1);
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.setShader(GameRenderer::getPositionTexProgram);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, s);
-            drawTexture(matrices, 0, 0, 0, 0, 0, width, height, width, height);
+            context.drawTexture(frameList.get(roundFrame), 0, 0, 0, 0, 0, width, height, width, height);
             RenderSystem.defaultBlendFunc();
             RenderSystem.disableBlend();
         }
-
-        // Render the Logo
-        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) {
-            RenderSystem.setShaderTexture(0, LOGO);
-        }
-        RenderSystem.enableBlend();
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-
-        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) {
-            RenderSystem.blendFunc(770, 1);
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, s);
-            drawTexture(matrices, m - w, u - v, w, (int)d, -0.0625F, 0.0F, 120, 60, 120, 120);
-            drawTexture(matrices, m, u - v, w, (int)d, 0.0625F, 60.0F, 120, 60, 120, 120);
-        }
-
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableBlend();
-
-        int x = (int)((double)this.client.getWindow().getScaledHeight() * 0.8325D);
-        float y = this.reload.getProgress();
-        this.progress = MathHelper.clamp(this.progress * 0.95F + y * 0.050000012F, 0.0F, 1.0F);
-        if (f < 1.0F) {
-            this.renderProgressBar(matrices, width / 2 - w, x - 5, width / 2 + w, x + 5, 1.0F - MathHelper.clamp(f, 0.0F, 1.0F), null);
-        }
-
-        if (f >= 2.0F) {
-            this.client.setOverlay(null);
-        }
-
-        if (this.reloadCompleteTime == -1L && this.reload.isComplete() && (!this.reloading || g >= 2.0F)) {
-            try {
-                this.reload.throwException();
-                this.exceptionHandler.accept(Optional.empty());
-            } catch (Throwable var23) {
-                this.exceptionHandler.accept(Optional.of(var23));
-            }
-
-            this.reloadCompleteTime = Util.getMeasuringTimeMs();
-            if (this.client.currentScreen != null) {
-                this.client.currentScreen.init(this.client, this.client.getWindow().getScaledWidth(), this.client.getWindow().getScaledHeight());
-            }
-        }
-
         startTimeLastRender = this.reloadStartTime;
     }
 
-    private static int getBackgroundColor() {
-        if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Animated) {
-            return BackgroundHelper.ColorMixer.getArgb(0, 0, 0, 0);
-        }
-        else {
-            return CustomSplashScreenClient.CS_CONFIG.backgroundColor;
+    @Inject(method = "withAlpha", at = @At("RETURN"), cancellable = true)
+    private static void css$modifyBackgroundColor(int color, int alpha, CallbackInfoReturnable<Integer> cir) {
+        if (color == BRAND_ARGB.getAsInt()) {
+            int configColor = (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) ? CustomSplashScreenClient.CS_CONFIG.backgroundColor | 255 << 24 : 0;
+            cir.setReturnValue(configColor & 16777215 | alpha << 24);
         }
     }
-
-    private static int withAlpha(int alpha) {
-        return getBackgroundColor() | alpha << 24;
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_clearColor(FFFF)V"))
+    private void css$clearModifiedColor(float red, float green, float blue, float alpha) {
+        int k = (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Static) ? CustomSplashScreenClient.CS_CONFIG.backgroundColor : 0;
+        float m = (float)(k >> 16 & 255) / 255.0F;
+        float n = (float)(k >> 8 & 255) / 255.0F;
+        float o = (float)(k & 255) / 255.0F;
+        GlStateManager._clearColor(m, n, o, 1.0F);
     }
-
-    @Inject(at = @At("TAIL"), method = "renderProgressBar")
-    private void renderProgressBar(MatrixStack matrices, int x1, int y1, int x2, int y2, float opacity, CallbackInfo ci) {
-        int i = MathHelper.ceil((float)(x2 - x1 - 2) * this.progress);
-
-        // Vanilla / With Color progress bar
-        if (CS_CONFIG.progressBar) {
-            int j = Math.round(opacity * 255.0F);
-            int k = CustomSplashScreenClient.CS_CONFIG.progressBarColor | 255 << 24;
-            int kk = CustomSplashScreenClient.CS_CONFIG.progressFrameColor | 255 << 24;
-            fill(matrices, x1 + 2, y1 + 2, x1 + i, y2 - 2, k);
-            fill(matrices, x1 + 1, y1, x2 - 1, y1 + 1, kk);
-            fill(matrices, x1 + 1, y2, x2 - 1, y2 - 1, kk);
-            fill(matrices, x1, y1, x1 + 1, y2, kk);
-            fill(matrices, x2, y1, x2 - 1, y2, kk);
-        }
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;blendFunc(II)V", shift = At.Shift.AFTER))
+    private void css$betterBlend(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
 
     }
 
+    @ModifyArg(method = "renderProgressBar", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;fill(IIIII)V"), index = 4)
+    private int css$modifyProgressFrame(int color) { // Set the Progress Bar Frame Color to our configured value //
+        return CS_CONFIG.progressBar ? CS_CONFIG.progressFrameColor | 255 << 24 : 0;
+    }
+    @ModifyArg(method = "renderProgressBar", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;fill(IIIII)V", ordinal = 0), index = 4)
+    private int css$modifyProgressColor(int color) { // Set the Progress Bar Color to our configured value //
+        return CS_CONFIG.progressBar ? CS_CONFIG.progressBarColor | 255 << 24 : 0;
+    }
 }
