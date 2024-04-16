@@ -89,6 +89,7 @@ public class SplashScreenMixin {
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;getScaledWindowWidth()I", shift = At.Shift.BEFORE, ordinal = 2))
     private void css$renderSplashBackground(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (CS_CONFIG.logoType == CustomSplashScreenConfig.LogoType.Animated) {
+            client.getTextureManager().registerTexture(LOGO, new EmptyTexture(EMPTY_TEXTURE));
             int width = client.getWindow().getScaledWidth();
             int height = client.getWindow().getScaledHeight();
             float prog = this.reload.getProgress();
@@ -117,6 +118,9 @@ public class SplashScreenMixin {
             context.drawTexture(frameList.get(roundFrame), 0, 0, 0, 0, 0, width, height, width, height);
             RenderSystem.defaultBlendFunc();
             RenderSystem.disableBlend();
+        }
+        else {
+            client.getTextureManager().registerTexture(LOGO, new BlurredConfigTexture(MOJANG_TEXTURE));
         }
         startTimeLastRender = this.reloadStartTime;
     }
